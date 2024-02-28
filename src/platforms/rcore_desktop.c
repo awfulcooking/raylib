@@ -62,6 +62,7 @@
     #define GLFW_EXPOSE_NATIVE_WIN32
     #define GLFW_NATIVE_INCLUDE_NONE // To avoid some symbols re-definition in windows.h
     #include "GLFW/glfw3native.h"
+    #include "platforms/windows_touch.h"
 
     #if defined(SUPPORT_WINMM_HIGHRES_TIMER) && !defined(SUPPORT_BUSY_WAIT_LOOP)
         // NOTE: Those functions require linking with winmm library
@@ -1127,6 +1128,19 @@ void PollInputEvents(void)
     // https://docs.microsoft.com/en-us/windows/win32/wintouch/getting-started-with-multi-touch-messages
     CORE.Input.Touch.position[0] = CORE.Input.Mouse.currentPosition;
 
+#ifdef _WIN32
+    TouchPoint touchPoints[MAX_TOUCH_POINTS];
+    GetWindowsTouchPoints(touchPoints, &CORE.Input.Touch.pointCount);
+
+    for (int i=0; i<MAX_TOUCH_POINTS; i++)
+    {
+        CORE.Input.Touch.pointId[i] = touchPoints[i].id;
+        CORE.Input.Touch.position[i].x = touchPoints[i].x;
+        CORE.Input.Touch.position[i].y = touchPoints[i].y;
+        CORE.Input.Touch.currentTouchState[i] = touchPoints[i].state;
+    }
+#endif
+
     // Check if gamepads are ready
     // NOTE: We do it here in case of disconnection
     for (int i = 0; i < MAX_GAMEPADS; i++)
@@ -1559,6 +1573,15 @@ int InitPlatform(void)
         if (glfwJoystickPresent(i)) strcpy(CORE.Input.Gamepad.name[i], glfwGetJoystickName(i));
     }
     //----------------------------------------------------------------------------
+
+#ifdef _WIN32
+    // Initialize touch system
+    //----------------------------------------------------------------------------
+    InitWindowsTouch(platform.handle);
+//    SetWindowsTouchCallback(touchCallback);
+
+    //----------------------------------------------------------------------------
+#endif
 
     // Initialize timming system
     //----------------------------------------------------------------------------
